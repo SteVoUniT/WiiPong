@@ -1,0 +1,84 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+#include <grrlib.h>
+#include <fat.h>
+
+int main(int argc, char **argv) {
+	// Declare framebuffer and rmode
+	void *xfb[2] = {NULL, NULL};
+	GXRModeObj *rmode = NULL;
+
+	// Initialize the FAT filesystem to access the SD card
+	if (!fatInitDefault()) {
+		printf("FAT initialization failed!\n");
+		exit(1);
+	}
+
+	// Initialize GRRLIB (this sets up VIDEO_Init, framebuffer allocation, etc.)
+	GRRLIB_Init();
+
+	// Get the render mode
+	rmode = VIDEO_GetPreferredMode(NULL);
+
+	// Allocate framebuffers
+	xfb[0] = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
+	xfb[1] = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
+
+	// Initialize the Wii controllers
+	WPAD_Init();
+
+	// Initialize the console for debugging
+	console_init(xfb[0], 20, 20, rmode->fbWidth, rmode->xfbHeight,
+				 rmode->fbWidth * VI_DISPLAY_PIX_SZ);
+
+	// Configure the video and make the display visible
+	VIDEO_Configure(rmode);
+	VIDEO_SetNextFramebuffer(xfb[0]);
+	VIDEO_SetBlack(false);
+	VIDEO_Flush();
+	VIDEO_WaitVSync();
+
+	if (rmode->viTVMode & VI_NON_INTERLACE) {
+		VIDEO_WaitVSync();
+	}
+
+	// Enable console output to screen
+	printf("GRRLIB Test - Drawing shapes\n");
+
+	// Main loop
+	while (1) {
+		WPAD_ScanPads();
+
+		if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
+			break;
+
+		// Clear the screen (fill with black)
+		GRRLIB_FillScreen(0x000000FF);
+
+		// Draw several shapes with different colors
+
+		// Red rectangle
+		GRRLIB_Rectangle(100, 100, 200, 150, 0xFF0000FF, 1);
+
+		// Blue circle
+		GRRLIB_Circle(320, 240, 80, 0x0000FFFF, 1);
+
+		// Green triangle (using lines)
+		GRRLIB_Line(400, 100, 500, 250, 0x00FF00FF);
+		GRRLIB_Line(500, 250, 350, 250, 0x00FF00FF);
+		GRRLIB_Line(350, 250, 400, 100, 0x00FF00FF);
+
+		// Render the frame
+		GRRLIB_Render();
+
+		VIDEO_WaitVSync();
+	}
+
+	// Clean up
+	printf("Exiting...\n");
+	GRRLIB_Exit();
+
+	return 0;
+}

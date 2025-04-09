@@ -1,0 +1,39 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+#include <grrlib.h>
+
+// No need to re-declare xfb and rmode; GRRLIB provides them.
+
+int main(int argc, char **argv) {
+	// Initialize video system (GRRLIB handles VIDEO_Init, allocation of framebuffers, etc.)
+	GRRLIB_Init();
+
+	// Initialize the controllers
+	WPAD_Init();
+
+	// Initialize the console using the first framebuffer (xfb[0])
+	console_init(xfb[0], 20, 20, rmode->fbWidth, rmode->xfbHeight, rmode->fbWidth * VI_DISPLAY_PIX_SZ);
+
+	// (Optional) You can configure the video and set the framebuffer if needed.
+	VIDEO_Configure(rmode);
+	VIDEO_SetNextFramebuffer(xfb[0]);
+	VIDEO_SetBlack(false);
+	VIDEO_Flush();
+	VIDEO_WaitVSync();
+	if(rmode->viTVMode & VI_NON_INTERLACE) VIDEO_WaitVSync();
+
+	// Print "Hello World!" at row 2, column 0
+	printf("\x1b[2;0HHello World!\n");
+
+	// Main loop: wait for the HOME button to exit
+	while(1) {
+		WPAD_ScanPads();
+		if(WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
+			exit(0);
+		VIDEO_WaitVSync();
+	}
+
+	return 0;
+}
