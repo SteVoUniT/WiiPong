@@ -7,9 +7,9 @@
 #define SCREEN_HEIGHT 480
 #define PADDLE_WIDTH 10
 #define PADDLE_HEIGHT 60
-#define BALL_SIZE 60
-#define PADDLE_SPEED 5
-#define BALL_SPEED 1
+#define BALL_SIZE 80
+#define PADDLE_SPEED 7
+#define BALL_SPEED 3
 #define PADDLE_COLOR 0xFFFFFFFF
 
 // Paddle and ball structure
@@ -36,6 +36,15 @@ int main(void) {
     GRRLIB_texImg *ballTexture = GRRLIB_LoadTextureFromFile("/linux.png");
     if (!ballTexture) {
         printf("Error: Could not load ball texture!\n");
+        return -1;
+    }
+
+    // Load font using GRRLIB_LoadTTFFromFile
+    GRRLIB_ttfFont *font = GRRLIB_LoadTTFFromFile("font.ttf");
+    if (!font) {
+        printf("Error: Could not load font.ttf!\n");
+        GRRLIB_FreeTexture(ballTexture);
+        GRRLIB_Exit();
         return -1;
     }
 
@@ -70,14 +79,14 @@ int main(void) {
 
         // Collision with paddles with angle variation
         if (ball.dx < 0 && ball.x <= player1.x + player1.w && ball.y + ball.size >= player1.y && ball.y <= player1.y + player1.h) {
-            ball.x = player1.x + player1.w; // Prevent overlap
+            ball.x = player1.x + player1.w;
             ball.dx = -ball.dx;
             int hitPosition = (ball.y + ball.size / 2) - (player1.y + PADDLE_HEIGHT / 2);
             ball.dy = hitPosition / (PADDLE_HEIGHT / 4);
         }
 
         if (ball.dx > 0 && ball.x + ball.size >= player2.x && ball.y + ball.size >= player2.y && ball.y <= player2.y + player2.h) {
-            ball.x = player2.x - ball.size; // Prevent overlap
+            ball.x = player2.x - ball.size;
             ball.dx = -ball.dx;
             int hitPosition = (ball.y + ball.size / 2) - (player2.y + PADDLE_HEIGHT / 2);
             ball.dy = hitPosition / (PADDLE_HEIGHT / 4);
@@ -88,20 +97,47 @@ int main(void) {
         if (ball.x >= SCREEN_WIDTH) { player1_score++; ResetBall(&ball); }
 
         // Rendering
-        GRRLIB_FillScreen(0x000000FF);
+        GRRLIB_FillScreen(0x000000FF); // Clear screen to black
+
+        // Draw paddles and ball
         GRRLIB_Rectangle(player1.x, player1.y, player1.w, player1.h, PADDLE_COLOR, true);
         GRRLIB_Rectangle(player2.x, player2.y, player2.w, player2.h, PADDLE_COLOR, true);
-
-        // Draw scaled ball texture
         float scaleX = (float)BALL_SIZE / ballTexture->w;
         float scaleY = (float)BALL_SIZE / ballTexture->h;
         GRRLIB_DrawImg(ball.x, ball.y, ballTexture, 0, scaleX, scaleY, PADDLE_COLOR);
 
-        // Swap buffers
+        // Draw score
+        char *label1 = "PLAYER 1";
+        char *label2 = "PLAYER 2";
+
+        int label_font_size = 20;
+        int score_font_size = 36;
+
+        int label1_width = GRRLIB_WidthTTF(font, label1, label_font_size);
+        int label2_width = GRRLIB_WidthTTF(font, label2, label_font_size);
+
+        int padding = 60;
+        int label1_x = SCREEN_WIDTH / 2 - padding - label1_width;
+        int label2_x = SCREEN_WIDTH / 2 + padding;
+
+        GRRLIB_PrintfTTF(label1_x, 20, font, label1, label_font_size, 0xB22234FF);
+        GRRLIB_PrintfTTF(label2_x, 20, font, label2, label_font_size, 0x0033A0FF);
+
+        char score1_text[8], score2_text[8];
+        snprintf(score1_text, sizeof(score1_text), "%d", player1_score);
+        snprintf(score2_text, sizeof(score2_text), "%d", player2_score);
+
+        int score1_width = GRRLIB_WidthTTF(font, score1_text, score_font_size);
+        int score2_width = GRRLIB_WidthTTF(font, score2_text, score_font_size);
+
+        GRRLIB_PrintfTTF(label1_x + (label1_width - score1_width) / 2, 45, font, score1_text, score_font_size, 0xB22234FF);
+        GRRLIB_PrintfTTF(label2_x + (label2_width - score2_width) / 2, 45, font, score2_text, score_font_size, 0x0033A0FF);
+
         GRRLIB_Render();
     }
 
-    // Free texture memory
+    // Cleanup
+    GRRLIB_FreeTTF(font);
     GRRLIB_FreeTexture(ballTexture);
     GRRLIB_Exit();
     return 0;
