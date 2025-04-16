@@ -1,3 +1,3 @@
-# Nintendo Wii Pong Game using C
-Nintendo Wii/PowerPC Pong game
-School Project
+# Nintendo Wii PowerPC Pong Project
+A demonstration of C/C++ running on the Nintendo Wii using GRRLIB libraries
+MVille Project
